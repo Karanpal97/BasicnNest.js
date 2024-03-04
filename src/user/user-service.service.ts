@@ -1,6 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserDto } from './dto';
 import * as argon from 'argon2';
@@ -9,9 +8,12 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 export class UserServiceService {
   constructor(
     private prisma: PrismaService,
-    private jwt:JwtService
+    private jwt: JwtService,
   ) {}
   async signup(dto: UserDto) {
+    if (!dto.password) {
+      throw new Error('Password is undefined');
+    }
     const hash = await argon.hash(dto.password);
 
     try {
@@ -24,6 +26,7 @@ export class UserServiceService {
       });
       return user;
     } catch (error) {
+      console.log('the error in the code', error);
       if (error instanceof PrismaClientKnownRequestError) {
         if (error.code == 'P2002') {
           throw new ForbiddenException('crendentials are taken');
@@ -45,21 +48,16 @@ export class UserServiceService {
     if (!pwMatch) {
       throw new ForbiddenException('password dont matches');
     }
-    delete user.password;
-    return user
+
+    return this.signToken(dto.email, dto.name);
   }
 
-  // async signToken(email, userId) {
-  //   const secret = "karan"
+  async signToken(email, name) {
+    const payload = {
+      sub: email,
+      name: name,
+    };
 
-  //   const payload = {
-  //     sub: email,
-  //     userId,
-  //   };
-
-  //   return this.jwt.signAsync(payload, {
-  //     expiresIn: '15m',
-  //     secret: secret,
-  //   });
+    return this.jwt.signAsync(payload);
   }
-
+}

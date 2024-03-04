@@ -7,5 +7,6 @@ export class UserDto {
   @IsString()
   @IsNotEmpty()
   name: string;
-  password:string
+  @IsString()
+  password: string;
 }
